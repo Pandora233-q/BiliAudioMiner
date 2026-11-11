@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B站音频提取器</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M4 14v-4M9 18V6M14 15v-6M19 13v-2"/>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <b>B站音频提取</b>
+          <small>无损优先 · 一键下载</small>
+        </div>
+      </div>
+      <span class="ver">v1.1</span>
+    </header>
+
+    <main id="main">
+      <section id="loading" class="pane">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="loading-text">正在读取当前视频…</p>
+        <p class="loading-sub">解析播放地址 · 查找最高音质</p>
+      </section>
+
+      <section id="unsupported" class="pane hidden">
+        <div class="empty-icon">🎬</div>
+        <h2>这里不是视频播放页</h2>
+        <p class="pane-text">请打开 B 站任意视频播放页后再点插件，例如：</p>
+        <code>www.bilibili.com/video/BV…</code>
+        <code>www.bilibili.com/bangumi/play/ep…</code>
+      </section>
+
+      <section id="errorPane" class="pane hidden">
+        <div class="empty-icon">⚠️</div>
+        <h2 id="errorTitle">没能取到音频</h2>
+        <p id="errorText" class="pane-text"></p>
+        <button id="retryBtn" class="btn ghost" type="button">重试</button>
+      </section>
+
+      <section id="content" class="pane hidden">
+        <div class="video">
+          <div class="cover">
+            <img id="cover" alt="" referrerpolicy="no-referrer">
+            <span class="cover-fallback" aria-hidden="true">♪</span>
+          </div>
+          <div class="video-info">
+            <h1 id="title" title=""></h1>
+            <div class="meta"><span id="metaId"></span></div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <span>音轨</span>
+          <span id="losslessHint" class="hint"></span>
+        </div>
+
+        <ul id="trackList" class="tracks"></ul>
+
+        <div class="action">
+          <button id="downloadBtn" class="btn primary" type="button">下载音频</button>
+
+          <div id="progressWrap" class="progress hidden">
+            <div class="bar"><i id="barFill"></i></div>
+            <div class="progress-meta">
+              <span id="progText">0%</span>
+              <span id="progSize"></span>
+            </div>
+          </div>
+
+          <p id="note" class="note hidden"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bottom">
+      <label class="switch" title="打开插件弹窗时，自动下载当前选中的最高音质">
+        <input type="checkbox" id="autoToggle" checked>
+        <span class="track"><span class="knob"></span></span>
+        <span class="switch-label">打开即自动下载</span>
+      </label>
+      <span class="copyright">仅供个人备份</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>popup preview</title>
+<link rel="stylesheet" href="../popup.css">
+<style>
+  html, body { width: 372px; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M4 14v-4M9 18V6M14 15v-6M19 13v-2"/>
+        </svg>
+      </span>
+      <div class="brand-text">
+        <b>B站音频提取</b>
+        <small>无损优先 · 一键下载</small>
+      </div>
+    </div>
+    <span class="ver">v1.0</span>
+  </header>
+
+  <main id="main">
+    <section id="loading" class="pane">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-text">正在读取当前视频…</p>
+      <p class="loading-sub">解析播放地址 · 查找最高音质</p>
+    </section>
+
+    <section id="unsupported" class="pane hidden">
+      <div class="empty-icon">🎬</div>
+      <h2>这里不是视频播放页</h2>
+      <p class="pane-text">请打开 B 站任意视频播放页后再点插件，例如：</p>
+      <code>www.bilibili.com/video/BV…</code>
+      <code>www.bilibili.com/bangumi/play/ep…</code>
+    </section>
+
+    <section id="errorPane" class="pane hidden">
+      <div class="empty-icon">⚠️</div>
+      <h2 id="errorTitle">没能取到音频</h2>
+      <p id="errorText" class="pane-text"></p>
+      <button id="retryBtn" class="btn ghost" type="button">重试</button>
+    </section>
+
+    <section id="content" class="pane hidden">
+      <div class="video">
+        <div class="cover">
+          <img id="cover" alt="" referrerpolicy="no-referrer">
+          <span class="cover-fallback" aria-hidden="true">♪</span>
+        </div>
+        <div class="video-info">
+          <h1 id="title" title=""></h1>
+          <div class="meta"><span id="metaId"></span></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <span>音轨</span>
+        <span id="losslessHint" class="hint"></span>
+      </div>
+
+      <ul id="trackList" class="tracks"></ul>
+
+      <div class="action">
+        <button id="downloadBtn" class="btn primary" type="button">下载音频</button>
+
+        <div id="progressWrap" class="progress hidden">
+          <div class="bar"><i id="barFill"></i></div>
+          <div class="progress-meta">
+            <span id="progText">0%</span>
+            <span id="progSize"></span>
+          </div>
+        </div>
+
+        <p id="note" class="note hidden"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <label class="switch" title="打开插件弹窗时，自动下载当前选中的最高音质">
+      <input type="checkbox" id="autoToggle" checked>
+      <span class="track"><span class="knob"></span></span>
+      <span class="switch-label">打开即自动下载</span>
+    </label>
+    <span class="copyright">仅供个人备份</span>
+  </footer>
+</div>
+
+<script>
+/* 假 chrome：让 popup.js 在普通页面里跑起来，用来看真实排版 */
+const qs = new URLSearchParams(location.search);
+const variant = qs.get('state') || 'ready';
+
+const COVER = 'https://i1.hdslb.com/bfs/archive/d4305c122263017f3eb24fdcf34b352d08af4a36.jpg';
+const TITLE = '《崩坏：星穹铁道》星神★阿哈角色PV——「让骰子飞」';
+
+const snapOk = {
+  phase: 'ready',
+  meta: { bvid: 'BV1tS4n6CEoJ', aid: 1, cid: 2, page: 1, title: TITLE, part: '', duration: 190, cover: COVER },
+  tracks: [
+    { key: 'flac', kind: 'flac', lossless: true, badge: '无损', label: 'Hi-Res 无损 FLAC', detail: '24bit / 96kHz · 1536 kbps', bandwidth: 1536000, mime: 'audio/flac', url: 'x' },
+    { key: 'dolby0', kind: 'dolby', lossless: false, badge: '杜比', label: '杜比全景声', detail: '448 kbps · E-AC-3', bandwidth: 448000, mime: 'audio/mp4', url: 'x' },
+    { key: 'aac0', kind: 'aac', lossless: false, badge: '有损', label: 'AAC 194 kbps', detail: 'mp4a.40.2 · 兼容性最好', bandwidth: 194000, mime: 'audio/mp4', url: 'x' },
+    { key: 'aac1', kind: 'aac', lossless: false, badge: '有损', label: 'AAC 94 kbps', detail: 'mp4a.40.2 · 兼容性最好', bandwidth: 94000, mime: 'audio/mp4', url: 'x' }
+  ],
+  duration: 190, received: 0, total: 0, filename: '', error: '', note: '', startedAt: 0
+};
+
+const plain = JSON.parse(JSON.stringify(snapOk));
+plain.tracks = plain.tracks.slice(2);
+
+const states = {
+  ready: snapOk,
+  lossy: plain,
+  downloading: Object.assign(JSON.parse(JSON.stringify(snapOk)), {
+    phase: 'downloading', received: 18 * 1024 * 1024, total: 36 * 1024 * 1024, startedAt: Date.now() - 9000
+  }),
+  done: Object.assign(JSON.parse(JSON.stringify(snapOk)), {
+    phase: 'done', received: 36500000, total: 36500000,
+    filename: '《崩坏：星穹铁道》星神★阿哈角色PV——「让骰子飞」 [BV1tS4n6CEoJ FLAC].m4a',
+    note: '这条无损音轨是 MP4 封装的 FLAC；用 ffmpeg -i 文件 -c copy 输出.flac 可转成标准 .flac'
+  }),
+  error: Object.assign(JSON.parse(JSON.stringify(plain)), {
+    phase: 'error', error: '音轨地址被拒绝（403）：地址可能已过期，刷新页面后重试'
+  })
+};
+
+const demoSnap = states[variant] || snapOk;
+
+const stub = {
+  tabs: {
+    query: async () => [{
+      id: 1,
+      url: variant === 'unsupported'
+        ? 'https://www.bilibili.com/'
+        : 'https://www.bilibili.com/video/BV1tS4n6CEoJ'
+    }],
+    sendMessage: async (id, msg) => {
+      if (msg.type === 'BAG_STATUS') return demoSnap;
+      if (msg.type === 'BAG_PREPARE') return { ok: true, snapshot: demoSnap };
+      return { ok: true };
+    }
+  },
+  scripting: { executeScript: async () => [{ result: {} }] },
+  storage: { local: { get: async (d) => ({ autoDownload: false }), set: async () => {} } },
+  runtime: {}
+};
+// 页面里 window.chrome 是自带的不可写属性，必须 defineProperty 才盖得掉
+try {
+  Object.defineProperty(window, 'chrome', { value: stub, configurable: true, writable: true });
+} catch (e) {
+  window.chrome = stub;
+}
+if (!window.chrome.tabs) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<pre style="color:#f66;font:12px monospace;padding:8px">chrome stub failed</pre>');
+}
+</script>
+<script>
+window.onerror = (m, s, l) => { document.title = 'ERR ' + m + ' @' + l; };
+window.addEventListener('unhandledrejection', (e) => {
+  document.title = 'REJ ' + (e.reason && (e.reason.stack || e.reason.message || e.reason));
+});
+</script>
+<script src="../popup.js"></script>
+</body>
+</html>

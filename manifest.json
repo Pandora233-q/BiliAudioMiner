@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "B站音频提取器",
+  "short_name": "B站音频",
+  "version": "1.1.0",
+  "description": "一键提取当前 B 站视频的最高音质音频并下载：优先 Hi-Res 无损 FLAC，其次杜比全景声 / AAC。",
+  "minimum_chrome_version": "102",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["*://*.bilibili.com/*"],
+  "action": {
+    "default_title": "提取当前视频的音频",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
